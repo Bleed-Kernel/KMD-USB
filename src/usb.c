@@ -1,4 +1,5 @@
 #include <usb/usb.h>
+#include <usb/usb_hub.h>
 #include <kmd/kmd.h>
 #include <gdt/gdt.h>
 #include <cpu/control_registers.h>
@@ -275,6 +276,9 @@ static void usb_hotplug_watch(void) {
 }
 
 static int usb_load(void) {
+    int r = usb_class_register(&usb_hub_class);
+    if (r < 0)
+        return r;
     return tick_register(usb_tick, NULL);
 }
 

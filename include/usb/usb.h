@@ -12,6 +12,7 @@
 #define USB_REQ_RCPT_DEVICE     0x00
 #define USB_REQ_RCPT_INTERFACE  0x01
 #define USB_REQ_RCPT_ENDPOINT   0x02
+#define USB_REQ_RCPT_OTHER      0x03
 
 // standard requests
 #define USB_REQ_CLEAR_FEATURE   0x01
@@ -26,6 +27,8 @@
 #define USB_DESC_INTERFACE      0x04
 #define USB_DESC_ENDPOINT       0x05
 #define USB_DESC_SS_COMPANION   0x30
+#define USB_DESC_HUB            0x29
+#define USB_DESC_SS_HUB         0x2A
 
 #define USB_FEATURE_ENDPOINT_HALT 0x00
 
@@ -40,6 +43,7 @@
 // HID, the boot protocol is the fixed report layout the BIOS uses so
 // we never have to parse a report descriptor
 #define USB_CLASS_HID           0x03
+#define USB_CLASS_HUB           0x09
 #define USB_HID_SUBCLASS_BOOT   0x01
 #define USB_HID_PROTO_KEYBOARD  0x01
 #define USB_HID_PROTO_MOUSE     0x02
@@ -149,15 +153,20 @@ typedef struct usb_hc_ops {
                       const usb_ss_companion_desc_t *ss);
     int  (*bulk)(struct usb_device *dev, uint8_t endpoint, void *buf, size_t len);
     int  (*reset_endpoint)(struct usb_device *dev, uint8_t endpoint);
+    int  (*hub_setup)(struct usb_device *dev, uint8_t ports, uint8_t think_time);
+    struct usb_device *(*device_add)(struct usb_device *hub, uint8_t port, usb_speed_t speed);
+    void (*device_remove)(struct usb_device *dev);
 } usb_hc_ops_t;
 
-// one of these per thing plugged into a root port
+// one of these per thing plugged into a root port or a hub
 typedef struct usb_device {
     const usb_hc_ops_t *ops;
     void       *hc;         // whichever controller struct ops belongs to
     void       *hc_priv;    // per device controller state, xhci keeps its slot here
     uint8_t     address;
     uint8_t     port;
+    uint8_t     depth;
+    struct usb_device *parent;
     usb_speed_t speed;
     uint16_t    max_packet0;
     uint16_t    vendor_id;
